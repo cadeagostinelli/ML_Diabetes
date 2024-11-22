@@ -1,28 +1,33 @@
+import torch
 from models.neural_network import DiabetesModel, train_model, evaluate_model
 from utils.preprocess import prepare_data
+import joblib
 
-if __name__ == "__main__":
-    # Step 1: Prepare Data
+
+def train_and_evaluate():
+    """
+    Function to train the model and evaluate its performance.
+    Returns:
+        trained_model: The trained PyTorch model.
+        accuracy: Accuracy of the model on the test set.
+    """
     print("Preparing data...")
     X_train, X_test, y_train, y_test = prepare_data('data/diabetes_indicator.csv')
 
-    # Step 2: Initialize Model
-    model = DiabetesModel()  # Create an instance of the model
-
-    # Step 3: Create DataLoader
-    import torch
-    from torch.utils.data import DataLoader, TensorDataset
-
+    model = DiabetesModel()
     X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
     y_train_tensor = torch.tensor(y_train, dtype=torch.long)
-    train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+    train_dataset = torch.utils.data.TensorDataset(X_train_tensor, y_train_tensor)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=16, shuffle=True)
 
-    # Step 4: Train the Model
     print("Training model...")
     trained_model = train_model(model, train_loader)
 
-    # Step 5: Evaluate the Model
     print("Evaluating model...")
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
-    evaluate_model(trained_model, X_test_tensor, y_test)
+    accuracy = evaluate_model(trained_model, X_test_tensor, y_test)
+
+    scaler = joblib.load('scaler.pkl')
+    joblib.dump(scaler, 'scaler.pkl')
+
+    return trained_model, accuracy
