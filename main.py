@@ -8,7 +8,6 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import pandas as pd
 
-
 # Load dataset
 df = pd.read_csv('diabetes_indicator.csv')
 
