@@ -109,7 +109,7 @@ def predict_diabetes():
             return
 
         # Convert validated inputs to a PyTorch tensor
-        inputs_tensor = torch.tensor(inputs, dtype=torch.float32).reshape(1, 21)  # Ensure it has 21 features
+        inputs_tensor = torch.tensor(inputs, dtype=torch.float32).reshape(1, 19)  # Ensure it has 21 features
 
         # Convert inputs_tensor to a DataFrame with appropriate column names
         input_df = pd.DataFrame(inputs_tensor.numpy(), columns=[field[0] for field in fields])
@@ -160,27 +160,25 @@ Label(root, text="Training the model. Please wait...", font=("Arial", 12)).pack(
 
 # Input labels and their descriptions
 fields = [
-    ("HighBP", "Enter 1 if diagnosed with high blood pressure, otherwise 0"),
-    ("HighChol", "Enter 1 if diagnosed with high cholesterol, otherwise 0"),
-    ("CholCheck", "Enter 1 if cholesterol was checked in the last 5 years, otherwise 0"),
-    ("BMI", "Enter Body Mass Index (e.g., 25.3 for normal weight)"),
-    ("Smoker", "Enter 1 if you smoke currently, otherwise 0"),
-    ("Stroke", "Enter 1 if you've had a stroke, otherwise 0"),
-    ("HeartDiseaseorAttack", "Enter 1 if you have had a heart disease or attack, otherwise 0"),
-    ("PhysActivity", "Enter 1 if you engage in physical activity regularly, otherwise 0"),
-    ("Fruits", "Enter 1 if you consume fruits at least once daily, otherwise 0"),
-    ("Veggies", "Enter 1 if you consume vegetables at least once daily, otherwise 0"),
-    ("HvyAlcoholConsump", "Enter 1 if you drink heavily (more than 14 drinks/week for men or 7 for women), otherwise 0"),
-    ("AnyHealthcare", "Enter 1 if you have health coverage, otherwise 0"),
-    ("NoDocbcCost", "Enter 1 if you couldn’t see a doctor due to cost, otherwise 0"),
-    ("GenHlth", "Rate general health (1: Excellent, 5: Poor)"),
-    ("MentHlth", "Number of days mental health was not good in the past month"),
-    ("PhysHlth", "Number of days physical health was not good in the past month"),
-    ("DiffWalk", "Enter 1 if you have difficulty walking or climbing stairs, otherwise 0"),
-    ("Sex", "Enter 1 for male, 0 for female"),
-    ("Age", "Enter age in years"),
-    ("Education", "Enter education level (1: Less than high school, 6: College graduate)"),
-    ("Income", "Enter income level (1: Less than $10,000, 8: $75,000 or more)")
+    ("HighBP", "1 if high blood pressure, 0 otherwise"),
+    ("HighChol", "1 if high cholesterol, 0 otherwise"),
+    ("CholCheck", "1 if cholesterol checked recently, 0 otherwise"),
+    ("BMI", "Body Mass Index (e.g., 25.3)"),
+    ("Smoker", "1 if you smoke, 0 otherwise"),
+    ("Stroke", "1 if you've had a stroke, 0 otherwise"),
+    ("HeartDiseaseorAttack", "1 if heart disease/attack, 0 otherwise"),
+    ("PhysActivity", "1 if regular physical activity, 0 otherwise"),
+    ("Fruits", "1 if daily fruit intake, 0 otherwise"),
+    ("Veggies", "1 if daily vegetable intake, 0 otherwise"),
+    ("HvyAlcoholConsump", "1 if heavy alcohol consumption, 0 otherwise"),
+    ("AnyHealthcare", "1 if health coverage, 0 otherwise"),
+    ("NoDocbcCost", "1 if couldn't see doctor due to cost, 0 otherwise"),
+    ("GenHlth", "Rate health (1: Excellent, 5: Poor)"),
+    ("MentHlth", "Days mental health not good (past month)"),
+    ("PhysHlth", "Days physical health not good (past month)"),
+    ("DiffWalk", "1 if difficulty walking, 0 otherwise"),
+    ("Sex", "1 for male, 0 for female"),
+    ("Age", "Enter age"),
 ]
 
 entries = []
