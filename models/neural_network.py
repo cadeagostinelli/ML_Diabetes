@@ -11,14 +11,12 @@ from torch.utils.data import DataLoader, TensorDataset
 df = pd.read_csv('../data/diabetes_indicator.csv')
 
 # Prepare features and target
-feature_columns = ['HighBP', 'HighChol', 'CholCheck', 'BMI', 'Smoker', 'Stroke', 'HeartDiseaseorAttack', 'PhysActivity','Fruits', 'Veggies', 
+feature_columns = ['HighBP', 'HighChol', 'CholCheck', 'BMI', 'Smoker', 'Stroke', 'HeartDiseaseorAttack', 'PhysActivity', 'Fruits', 'Veggies', 
                    'HvyAlcoholConsump', 'AnyHealthcare', 'NoDocbcCost', 'GenHlth', 'MentHlth', 'PhysHlth', 
-                   'DiffWalk', 'Sex', 'Age', 'Education', 'Income']
-X = df[feature_columns].values 
-y = df['Diabetes_012'].values 
+                   'DiffWalk', 'Sex', 'Age']
 
-# Debugging: Print the feature names
-print(f"Feature names used for scaling: {feature_columns}")
+X = df[feature_columns].values  
+y = df['Diabetes_012'].values
 
 # Split into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -30,11 +28,27 @@ X_test = scaler.transform(X_test)
 
 # Now X_train and X_test have the same columns as feature_columns
 
+print(f"X shape before split: {X.shape}")
+
 # Convert to PyTorch tensors
 X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
 y_train_tensor = torch.tensor(y_train, dtype=torch.long)
 X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
 y_test_tensor = torch.tensor(y_test, dtype=torch.long)
+
+print(f"X_train_tensor shape: {X_train_tensor.shape}")
+# After converting to PyTorch tensors
+print("Class distribution in training set:", y_train_tensor.bincount())
+print("Class distribution in test set:", y_test_tensor.bincount())
+
+# Calculate class weights based on the inverse frequency of classes
+class_counts = torch.tensor([170908, 3687, 28349])
+class_weights = 1.0 / class_counts
+normalized_weights = class_weights / class_weights.sum()  # Normalize weights
+print(f"Normalized class weights: {normalized_weights}")
+
+# Apply these weights to the CrossEntropyLoss function
+criterion = nn.CrossEntropyLoss(weight=normalized_weights)
 
 # Create datasets and data loaders
 train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
@@ -42,13 +56,12 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
 test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
 
-
 class DiabetesModel(nn.Module):
 
     def __init__(self):
         super(DiabetesModel, self).__init__()
-        # First layer with 21 input features and 16 neurons
-        self.fc1 = nn.Linear(21, 16)
+        # First layer with 19 input features and 16 neurons
+        self.fc1 = nn.Linear(19, 16)
         # Second layer with 16 inputs and 8 outputs
         self.fc2 = nn.Linear(16, 8)
         # Output layer with 3 output classes (no diabetes, pre-diabetes, diabetes)
@@ -62,8 +75,7 @@ class DiabetesModel(nn.Module):
         return x
 
 
-def train_model(model, train_loader, epochs=5):
-    criterion = nn.CrossEntropyLoss()
+def train_model(model, train_loader, epochs=20):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     for epoch in range(epochs):
