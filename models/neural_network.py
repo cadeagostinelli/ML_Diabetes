@@ -6,14 +6,19 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-import pandas as pd
 
 # Load dataset
-df = pd.read_csv('data/diabetes_indicator.csv')
+df = pd.read_csv('../data/diabetes_indicator.csv')
 
 # Prepare features and target
-X = df[['HighBP', 'HighChol', 'CholCheck', 'BMI', 'Smoker', 'Stroke', 'Fruits', 'Veggies', 'HvyAlcoholConsump', 'AnyHealthcare', 'NoDocbcCost', 'GenHlth', 'MentHlth', 'PhysHlth', 'DiffWalk', 'Sex', 'Age', 'Education', 'Income']].values  # Replace with your feature columns
+feature_columns = ['HighBP', 'HighChol', 'CholCheck', 'BMI', 'Smoker', 'Stroke', 'HeartDiseaseorAttack', 'PhysActivity','Fruits', 'Veggies', 
+                   'HvyAlcoholConsump', 'AnyHealthcare', 'NoDocbcCost', 'GenHlth', 'MentHlth', 'PhysHlth', 
+                   'DiffWalk', 'Sex', 'Age', 'Education', 'Income']
+X = df[feature_columns].values 
 y = df['Diabetes_012'].values 
+
+# Debugging: Print the feature names
+print(f"Feature names used for scaling: {feature_columns}")
 
 # Split into training and test sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -22,6 +27,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
+
+# Now X_train and X_test have the same columns as feature_columns
 
 # Convert to PyTorch tensors
 X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
@@ -40,8 +47,8 @@ class DiabetesModel(nn.Module):
 
     def __init__(self):
         super(DiabetesModel, self).__init__()
-        # First layer with 19 input features and 16 neurons
-        self.fc1 = nn.Linear(19, 16)
+        # First layer with 21 input features and 16 neurons
+        self.fc1 = nn.Linear(21, 16)
         # Second layer with 16 inputs and 8 outputs
         self.fc2 = nn.Linear(16, 8)
         # Output layer with 3 output classes (no diabetes, pre-diabetes, diabetes)
@@ -55,55 +62,51 @@ class DiabetesModel(nn.Module):
         return x
 
 
-# Define the train_model function
-def train_model(model, train_loader, epochs=20):
-    # Cross entropy loss for multi-class classification
+def train_model(model, train_loader, epochs=5):
     criterion = nn.CrossEntropyLoss()
-    # Adam optimizer for updating weights
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    # Training loop
     for epoch in range(epochs):
         model.train()
         for X_batch, y_batch in train_loader:
-            optimizer.zero_grad()  # Reset gradients
-            outputs = model(X_batch)  # Forward pass
-            loss = criterion(outputs, y_batch)  # Compute loss
-            loss.backward()  # Backpropagation
-            optimizer.step()  # Update weights
+            optimizer.zero_grad()
+            outputs = model(X_batch)
+            loss = criterion(outputs, y_batch)
+            loss.backward()
+            optimizer.step()
 
         print(f"Epoch {epoch + 1}/{epochs}, Loss: {loss.item():.4f}")
 
-    # Save the trained model
     torch.save(model.state_dict(), 'diabetes_model.pth')
     print("Model saved!")
     return model
 
 
-# Define the evaluate_model function
 def evaluate_model(model, X_test_tensor, y_test):
-    """
-    Evaluates the trained model on the test dataset.
-    Args:
-        model: Trained PyTorch model.
-        X_test_tensor: Test data features as PyTorch tensor.
-        y_test: True labels for the test data.
-
-    Returns:
-        accuracy: Model accuracy on the test dataset.
-    """
-    model.eval()  # Set the model to evaluation mode
+    model.eval()
     with torch.no_grad():
-        outputs = model(X_test_tensor)  # Forward pass
-        _, predicted = torch.max(outputs, 1)  # Get class predictions
+        outputs = model(X_test_tensor)
+        _, predicted = torch.max(outputs, 1)
         accuracy = accuracy_score(y_test, predicted.numpy()) * 100
         print(f"Test Accuracy: {accuracy:.2f}%")
     return accuracy
 
 
+# Debugging added for prediction consistency
+def debug_prediction_input(input_df, expected_features):
+    print(f"Input DataFrame columns: {input_df.columns.tolist()}")
+    missing = [feature for feature in expected_features if feature not in input_df.columns]
+    unexpected = [col for col in input_df.columns if col not in expected_features]
+    if missing:
+        raise ValueError(f"Missing features during prediction: {missing}")
+    if unexpected:
+        raise ValueError(f"Unexpected features during prediction: {unexpected}")
+    print("Prediction input matches training features.")
+
+
 # Main training and evaluation logic
 if __name__ == "__main__":
-    model = DiabetesModel()  # Initialize the model
+    model = DiabetesModel()
 
     # Train the model
     print("Starting training...")

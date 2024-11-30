@@ -5,6 +5,7 @@ from tkinter import Toplevel, Label, Button, messagebox
 from threading import Thread
 import torch
 import joblib
+import pandas as pd
 
 # Add the root directory (ML_Diabetes/) to Python's module path dynamically
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -39,23 +40,28 @@ def train_model_ui():
 
     # Training function to run in a background thread
     def train():
-        global trained_model, scaler
+        global trained_model, scaler, training_completed
         try:
             # Train and evaluate the model
             trained_model, scaler, accuracy = train_and_evaluate()
 
             # Save the scaler for normalization during prediction
-            joblib.dump(scaler, os.path.join(ROOT_DIR, "scaler.pkl"))
+            joblib.dump(scaler, os.path.join(ROOT_DIR, "../scaler.pkl"))
+
+            # Save the trained model
+            torch.save(trained_model.state_dict(), os.path.join(ROOT_DIR, "diabetes_model.pth"))
 
             # Notify user of training completion
+            training_completed = True  # Update training status here
+            predict_button.config(state=tk.NORMAL)  # Enable prediction button
+
+            # Destroy loading screen and show completion message
             loading_screen.destroy()
             messagebox.showinfo(
                 "Training Completed",
                 f"Model trained successfully!\nTest Accuracy: {accuracy:.2f}%",
                 parent=root
             )
-            training_completed = True
-            predict_button.config(state=tk.NORMAL)  # Enable prediction button
 
         except Exception as e:
             loading_screen.destroy()
@@ -71,25 +77,56 @@ def train_model_ui():
 
 # Function to predict diabetes risk
 def predict_diabetes():
+    global trained_model, training_completed
+
     if not training_completed:
         messagebox.showerror(
-            "Error", "Model is not trained yet. Please wait for training to complete.", parent=root
+            "Error", "The model has not finished training. Please wait.", parent=root
         )
         return
 
     try:
-        # Gather user inputs from GUI fields
-        inputs = [float(entry.get()) for entry in entries]
-        inputs = torch.tensor(inputs, dtype=torch.float32).reshape(1, -1)
+                # Gather and validate user inputs
+        inputs = []
+        invalid_fields = []
+        for i, (entry, (field_name, _)) in enumerate(zip(entries, fields)):
+            value = entry.get()
+            try:
+                # Attempt to convert the input to a float
+                inputs.append(float(value))
+            except ValueError:
+                # Collect the name of the field with invalid input
+                invalid_fields.append(field_name)
 
-        # Normalize inputs using the saved scaler
-        inputs = scaler.transform(inputs)
-        inputs_tensor = torch.tensor(inputs, dtype=torch.float32)
+        # If there are any invalid fields, show an error message and stop
+        if invalid_fields:
+            invalid_fields_str = "\n".join(invalid_fields)
+            messagebox.showerror(
+                "Input Error",
+                f"The following fields have invalid or missing values:\n{invalid_fields_str}",
+                parent=root
+            )
+            return
+
+        # Convert validated inputs to a PyTorch tensor
+        inputs_tensor = torch.tensor(inputs, dtype=torch.float32).reshape(1, 21)  # Ensure it has 21 features
+
+        # Convert inputs_tensor to a DataFrame with appropriate column names
+        input_df = pd.DataFrame(inputs_tensor.numpy(), columns=[field[0] for field in fields])
+
+        # Normalize using the scaler
+        inputs_scaled = scaler.transform(input_df)
+        inputs_scaled_tensor = torch.tensor(inputs_scaled, dtype=torch.float32)
+
+
+        # Load the trained model
+        model_path = os.path.join(ROOT_DIR, "diabetes_model.pth")
+        trained_model.load_state_dict(torch.load(model_path, weights_only=True))
+        trained_model.eval()
 
         # Use the trained model to make predictions
-        trained_model.eval()
         with torch.no_grad():
-            outputs = trained_model(inputs_tensor)
+            outputs = trained_model(inputs_scaled_tensor)
             _, predicted = torch.max(outputs, 1)
 
         # Map predictions to risk levels
@@ -104,10 +141,13 @@ def predict_diabetes():
 
         Button(result_popup, text="Close", command=result_popup.destroy, font=("Arial", 12)).pack(pady=20)
 
-    except ValueError:
+    except Exception as e:
         messagebox.showerror(
-            "Error", "Please enter valid numeric values for all fields.", parent=root
+            "Error", f"An unexpected error occurred: {e}", parent=root
         )
+
+
+
 
 
 # Create the Tkinter GUI
@@ -126,6 +166,8 @@ fields = [
     ("BMI", "Enter Body Mass Index (e.g., 25.3 for normal weight)"),
     ("Smoker", "Enter 1 if you smoke currently, otherwise 0"),
     ("Stroke", "Enter 1 if you've had a stroke, otherwise 0"),
+    ("HeartDiseaseorAttack", "Enter 1 if you have had a heart disease or attack, otherwise 0"),
+    ("PhysActivity", "Enter 1 if you engage in physical activity regularly, otherwise 0"),
     ("Fruits", "Enter 1 if you consume fruits at least once daily, otherwise 0"),
     ("Veggies", "Enter 1 if you consume vegetables at least once daily, otherwise 0"),
     ("HvyAlcoholConsump", "Enter 1 if you drink heavily (more than 14 drinks/week for men or 7 for women), otherwise 0"),
