@@ -14,7 +14,7 @@ if ROOT_DIR not in sys.path:
 
 # Import model and training function
 from models.neural_network import DiabetesModel
-from main import train_and_evaluate  # Ensure main.py is in the root folder
+from main import train_and_evaluate
 
 # Global variables for the trained model, scaler, and status
 trained_model = None
@@ -52,8 +52,8 @@ def train_model_ui():
             torch.save(trained_model.state_dict(), os.path.join(ROOT_DIR, "diabetes_model.pth"))
 
             # Notify user of training completion
-            training_completed = True  # Update training status here
-            predict_button.config(state=tk.NORMAL)  # Enable prediction button
+            training_completed = True 
+            predict_button.config(state=tk.NORMAL) 
 
             # Destroy loading screen and show completion message
             loading_screen.destroy()
@@ -86,7 +86,6 @@ def predict_diabetes():
         return
 
     try:
-                # Gather and validate user inputs
         inputs = []
         invalid_fields = []
         for i, (entry, (field_name, _)) in enumerate(zip(entries, fields)):

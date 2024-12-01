@@ -28,7 +28,7 @@ def train_and_evaluate():
 
     # Ensure that the data only includes the selected features
     X = data[selected_features]
-    y = data['Diabetes_012']  # Assuming this is your target column
+    y = data['Diabetes_012']
 
     # Split the data into training and testing sets (80/20 split)
     from sklearn.model_selection import train_test_split
